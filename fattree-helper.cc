@@ -44,9 +44,9 @@ NS_LOG_COMPONENT_DEFINE ("FattreeHelper");
   addr << pod + 101 << "." << aggr + 1 << "." << edge + 1 << "2/24"
 
 /* Link between edge and end node. pod+1+200.edge+1.node+1.(1|2) */
-#define EDGENODE_EDGEADDR(add, pod, edge, node) \
+#define EDGENODE_EDGEADDR(addr, pod, edge, node) \
   addr << pod + 201 << "." << edge + 1 << "." << node + 1 << "1/24"
-#define EDGENODE_NODEADDR(add, pod, edge, node) \
+#define EDGENODE_NODEADDR(addr, pod, edge, node) \
   addr << pod + 201 << "." << edge + 1 << "." << node + 1 << "2/24"
 
 
@@ -88,13 +88,24 @@ FattreeHelper::AddLoAddress(Ptr<Node> node, Time at, const char *address)
 
 static void
 FattreeHelper::AddRoute(Ptr<Node> node, Time at,
-			const char *dst, const char *next)
+			str::stringstream dst, str::stringstream next)
 {
   std::ostringstream oss;
   oss << "-f inet route add to " << dst << " via " << next;
   RunIp(node, at, oss.str());
 }
   
+static void
+FattreeHelper::LinkUp(NodeContainer nc, NetDeviceContainer ndc, Time at)
+{
+  std::stringstream simup1, simup2;
+  simup1 << "link set sim" << ndc.Get(0)->GetIfIndex() << " up";
+  simup2 << "link set sim" << ndc.Get(1)->GetIfIndex() << " up";
+
+  RunIp (nc.Get (0), Seconds (at), simup1.str());
+  RunIp (nc.Get (1), SEconds (at), simup2.str());
+  return;
+}
 
 void
 FattreeHelper::FattreeHelper ()
@@ -169,6 +180,8 @@ FattreeHelper::Create ()
       ROOTAGGR_AGGRADDR (aggra, root, pod, aggr);
       AddAddress (nc.Get(0), Seconds(0.1), ndc.Get(0)->GetIfIndex(), roota);
       AddAddress (nc.Get(0), Seconds(0.1), ndc.Get(1)->GetIfIndex(), aggra);
+
+      LinkUp (nc, ndc, 0.11);
     }
   }
   
@@ -194,8 +207,10 @@ FattreeHelper::Create ()
 	std::stringstream aggra, edgea;
 	AGGREDGE_AGGRADDR (aggra, pod, aggr, edge);
 	AGGREDGE_EDGEADDR (edgea, pod, aggr, edge);
-	AddAddress (nc.Get(0), Seconds(0.2), ndc.Get(0)->GetIfIndex(), aggra);
-	AddAddress (nc.Get(0), Seconds(0.2), ndc.Get(1)->GetIfIndex(), edgea);
+	AddAddress (nc.Get(0), Seconds(0.11), ndc.Get(0)->GetIfIndex(), aggra);
+	AddAddress (nc.Get(0), Seconds(0.11), ndc.Get(1)->GetIfIndex(), edgea);
+
+	LinkUp (nc, ndc, 0.21);
       }
     }
   }
@@ -222,8 +237,10 @@ FattreeHelper::Create ()
 	std::stringstream edgea, noden;
 	EDGENODE_EDGEADDR (edgea, pod, edge, node);
 	EDGENODE_NODEADDR (edgea, pod, edge, node);
-	AddAddress (nc.Get(0), Seconds(0.3), ndc.Get(0)->GetIfIndex(), edgea);
-	AddAddress (nc.Get(0), Seconds(0.3), ndc.Get(1)->GetIfIndex(), nodea);
+	AddAddress (nc.Get(0), Seconds(0.12), ndc.Get(0)->GetIfIndex(), edgea);
+	AddAddress (nc.Get(0), Seconds(0.12), ndc.Get(1)->GetIfIndex(), nodea);
+
+	LinkUp (nc, ndc, 0.21);
       }
     }
   }
@@ -234,7 +251,77 @@ FattreeHelper::Create ()
 void
 FattreeHelper::InstallRoute ()
 {
-  
+  /* Install shortest path through index 0 root, aggregation, edge switch*/
+
+  for (int pod = 0; pod < PODNUM; pod++) {
+    for (int root = 0; root < ROOTSWNUM; root++) {
+
+      /* set route from Root to Aggrgation. prefix is Pod+201.0.0.0/8 */
+
+      int aggr = (int)(root / KARY2);
+      int aggrn = AGGRSWINPODNUM * pod + aggr;
+
+      std::stringstream podprefix, aggrsim;
+      podprefix << pod + 201 << "0.0.0./8";
+      ROOTAGGR_AGGRADDR(aggrsim, root, pod, aggr);
+
+      AddRoute (this->rootsw.Get (root), Seconds (0.2), podprefix, aggrsim);
+
+      /* if root index is 0, set default route */
+      if (root = ROOTROOTSW) {
+	str::stringstream prefix, rootsim;
+	prefix << "0.0.0.0/0";
+	ROOTAGGR_ROOTATTR(rootsim, root, pod, aggr);
+	AddRoute (this->aggrsw.Get (aggrn), prefix, rootsim);
+      }
+    }
+  }
+
+  /* set route between aggregation and edge switches */
+  for (int pod = 0; pod < PODNUM; pod++) {
+    for (int aggr = 0; aggr < AGGRSWINPODNUM; aggr++) {
+      for (int edge = 0; edge < EDGESWINPODNUM; edge++) {
+
+	int aggrn = AGGRSWINPODNUM * pod + aggr;
+	int edgen = EDGESWINPODNUM * pod + edge;
+
+	/* set route from aggr to edge
+	 * Prefix is Pod + 201.Edge.0.0/16
+	 */
+	std::stringstream edgeprefix, edgesim;
+	edgeprefix << pod + 201 << "." << edge + 1 << ".0.0/16";
+	AGGREDGE_EDGEADDR (edgesim, pod, aggr, edge);
+	AddRoute (this->aggrsw.Get (aggrn), edgeprefix, edgesim);
+
+	/* set up default route from edge to aggr */
+	if (aggr == ROOTAGGRSW) {
+	  std::stringstream prefix, aggrsim;
+	  prefix << "0.0.0.0/0";
+	  AGGREDGE_AGGRADDR (aggrsim, pod, aggr, edge);
+	  AddRoute (this->edgesw.Get (edgen), prefix, aggrsim);
+	}
+      }
+    }
+  }
+
+  /* set route between edge switch and end nodes */
+  for (int pod = 0; pod < PODNUM; pod++) {
+    for (int edge = 0; edge < EDGESWINPODNUM; edge++) {
+      for (int node = 0; node < NODEINEDGENUM; node++) {
+
+	int edgen = EDGESWINPODNUM * pod + edge;
+	int noden = NODEINPODNUM * pod + NODEINEDGENUM * edge + node;
+
+	/* edge to node is connected route.
+	 * set up default route to edge switch from end node.
+	 */
+	std::stringstream prefix, edgesim;
+	prefix << "0.0.0.0/0";
+	EDGENODE_EDGEADDR (edgesim, pod, edge, node);
+	AddRoute (this->nodes.Get (noden), prefix, edgesim);
+      }
+    }
+  }
 }
 
 
