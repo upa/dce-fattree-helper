@@ -1,13 +1,21 @@
 
+#include "ns3/object-factory.h"
 #include "fattree-helper.h"
 #include "ns3/names.h"
-
+#include "ns3/log.h"
+#include "ns3/point-to-point-helper.h"
+#include "ns3/network-module.h"
+#include "ns3/linux-stack-helper.h"
 
 NS_LOG_COMPONENT_DEFINE ("FattreeHelper");
 
-#define FATTREE_DEFAULT_ARYSIZE	4
+#define FATTREE_DEFAULT_ARYSIZE		4
+#define FATTREE_DEFAULT_LINKSPEED	"10mbps"
+#define FATTREE_DEFAULT_LINKDELAY	"1ms"
 
-#define LINKSPEED "10mbps"
+#define LINKSPEED	(this->linkspeed)
+#define LINKDELAY	(this->linkdelay)
+
 
 #define KARY		(this->kary)
 #define KARY2		(KARY / 2)
@@ -54,7 +62,7 @@ NS_LOG_COMPONENT_DEFINE ("FattreeHelper");
 
 namespace ns3 {
 
-static void
+void
 FattreeHelper::RunIp(Ptr<Node> node, Time at, std::string str)
 {
   DceApplicationHelper process;
@@ -67,18 +75,18 @@ FattreeHelper::RunIp(Ptr<Node> node, Time at, std::string str)
   apps.Start(at);
 }
 
-static void
+void
 FattreeHelper::AddAddress(Ptr<Node> node, Time at, int ifindex, 
 			  const char *address)
 {
-  std::ostringstream oss;
-  oss << "-f inet addr add " << address
+  std::stringstream ss;
+  ss << "-f inet addr add " << address
       << " dev sim" << ifindex;
-  RunIp(node, at, oss.str());
+  RunIp(node, at, ss.str());
 }
 
 
-static void
+void
 FattreeHelper::AddLoAddress(Ptr<Node> node, Time at, const char *address)
 {
   std::ostringstream oss;
@@ -86,16 +94,16 @@ FattreeHelper::AddLoAddress(Ptr<Node> node, Time at, const char *address)
   RunIp(node, at, oss.str());
 }
 
-static void
+void
 FattreeHelper::AddRoute(Ptr<Node> node, Time at,
-			str::stringstream dst, str::stringstream next)
+			const char *dst, const char *next)
 {
   std::ostringstream oss;
   oss << "-f inet route add to " << dst << " via " << next;
   RunIp(node, at, oss.str());
 }
   
-static void
+void
 FattreeHelper::LinkUp(NodeContainer nc, NetDeviceContainer ndc, Time at)
 {
   std::stringstream simup1, simup2;
@@ -103,26 +111,28 @@ FattreeHelper::LinkUp(NodeContainer nc, NetDeviceContainer ndc, Time at)
   simup2 << "link set sim" << ndc.Get(1)->GetIfIndex() << " up";
 
   RunIp (nc.Get (0), Seconds (at), simup1.str());
-  RunIp (nc.Get (1), SEconds (at), simup2.str());
+  RunIp (nc.Get (1), Seconds (at), simup2.str());
   return;
 }
 
-void
+
 FattreeHelper::FattreeHelper ()
 {
   this->kary = FATTREE_DEFAULT_ARYSIZE;
+  strcpy (LINKSPEED, FATTREE_DEFAULT_LINKSPEED);
+  strcpy (LINKDELAY, FATTREE_DEFAULT_LINKDELAY);
 }
 
 void
-FattreeHelper::SetATtribute (std::string name, const AttributeValue &value)
+FattreeHelper::SetAttribute (std::string name, const AttributeValue &value)
 {
 }
 
 void
-FattreeHelper::SetArySeize (int kary)
+FattreeHelper::SetArySize (int kary)
 {
   if (kary % 2 != 0) {
-    NS_LOG_INFO ("invalid kary size %d\n", kary);
+    NS_LOG_INFO ("invalid kary size\n");
     return;
   }
   this->kary = kary;
@@ -162,12 +172,12 @@ FattreeHelper::Create ()
 
       int linkn = PODNUM * pod + root;	/* link number */
       int aggr = (int)(root / KARY2);
-      int aggrn = AGRSWINPODNUM * pod + aggr;
+      int aggrn = AGGRSWINPODNUM * pod + aggr;
       
       /* install link */
       PointToPointHelper p2p;
       p2p.SetDeviceAttribute("DataRate", StringValue (LINKSPEED));
-      p2p.SetChannelAttribute("Delay", StringValue ("0ms"));
+      p2p.SetChannelAttribute("Delay", StringValue (LINKDELAY));
 
       NodeContainer nc;
       NetDeviceContainer ndc;
@@ -175,13 +185,15 @@ FattreeHelper::Create ()
       ndc = p2p.Install (nc);
 
       /* setup IP addresses */
-      std::stringstream rootaddr, aggraddr;
+      std::stringstream roota, aggra;
       ROOTAGGR_ROOTADDR (roota, root, pod, aggr);
       ROOTAGGR_AGGRADDR (aggra, root, pod, aggr);
-      AddAddress (nc.Get(0), Seconds(0.1), ndc.Get(0)->GetIfIndex(), roota);
-      AddAddress (nc.Get(0), Seconds(0.1), ndc.Get(1)->GetIfIndex(), aggra);
+      AddAddress (nc.Get(0), Seconds(0.1),
+		  ndc.Get(0)->GetIfIndex(), roota.str().c_str());
+      AddAddress (nc.Get(0), Seconds(0.1), ndc.Get(1)->GetIfIndex(),
+		  aggra.str().c_str());
 
-      LinkUp (nc, ndc, 0.11);
+      LinkUp (nc, ndc, Seconds (0.11));
     }
   }
   
@@ -191,12 +203,12 @@ FattreeHelper::Create ()
       for (int edge = 0; edge < EDGESWINPODNUM; edge++) {
 
 	int aggrn = AGGRSWINPODNUM * pod + aggr;
-	int edgen = EEDGESWINPODNUM * pod + edge;
+	int edgen = EDGESWINPODNUM * pod + edge;
 	
 	/* install link */
 	PointToPointHelper p2p;
 	p2p.SetDeviceAttribute("DataRate", StringValue (LINKSPEED));
-	p2p.SetChannelAttribute("Delay", StringValue ("0ms"));
+	p2p.SetChannelAttribute("Delay", StringValue (LINKDELAY));
 
 	NodeContainer nc;
 	NetDeviceContainer ndc;
@@ -207,10 +219,12 @@ FattreeHelper::Create ()
 	std::stringstream aggra, edgea;
 	AGGREDGE_AGGRADDR (aggra, pod, aggr, edge);
 	AGGREDGE_EDGEADDR (edgea, pod, aggr, edge);
-	AddAddress (nc.Get(0), Seconds(0.11), ndc.Get(0)->GetIfIndex(), aggra);
-	AddAddress (nc.Get(0), Seconds(0.11), ndc.Get(1)->GetIfIndex(), edgea);
+	AddAddress (nc.Get(0), Seconds(0.11),
+		    ndc.Get(0)->GetIfIndex(), aggra.str().c_str());
+	AddAddress (nc.Get(0), Seconds(0.11),
+		    ndc.Get(1)->GetIfIndex(), edgea.str().c_str());
 
-	LinkUp (nc, ndc, 0.21);
+	LinkUp (nc, ndc, Seconds (0.12));
       }
     }
   }
@@ -226,7 +240,7 @@ FattreeHelper::Create ()
 	/* install link */
 	PointToPointHelper p2p;
 	p2p.SetDeviceAttribute("DataRate", StringValue (LINKSPEED));
-	p2p.SetChannelAttribute("Delay", StringValue ("0ms"));
+	p2p.SetChannelAttribute("Delay", StringValue (LINKDELAY));
 
 	NodeContainer nc;
 	NetDeviceContainer ndc;
@@ -234,13 +248,15 @@ FattreeHelper::Create ()
 	ndc = p2p.Install (nc);
 
 	/* setup IP addresses */
-	std::stringstream edgea, noden;
+	std::stringstream edgea, nodea;
 	EDGENODE_EDGEADDR (edgea, pod, edge, node);
-	EDGENODE_NODEADDR (edgea, pod, edge, node);
-	AddAddress (nc.Get(0), Seconds(0.12), ndc.Get(0)->GetIfIndex(), edgea);
-	AddAddress (nc.Get(0), Seconds(0.12), ndc.Get(1)->GetIfIndex(), nodea);
+	EDGENODE_NODEADDR (nodea, pod, edge, node);
+	AddAddress (nc.Get(0), Seconds(0.12),
+		    ndc.Get(0)->GetIfIndex(), edgea.str().c_str());
+	AddAddress (nc.Get(0), Seconds(0.12),
+		    ndc.Get(1)->GetIfIndex(), nodea.str().c_str());
 
-	LinkUp (nc, ndc, 0.21);
+	LinkUp (nc, ndc, Seconds (0.13));
       }
     }
   }
@@ -249,7 +265,7 @@ FattreeHelper::Create ()
 }
 
 void
-FattreeHelper::InstallRoute ()
+FattreeHelper::InstallDownRoute(void)
 {
   /* Install shortest path through index 0 root, aggregation, edge switch*/
 
@@ -265,15 +281,8 @@ FattreeHelper::InstallRoute ()
       podprefix << pod + 201 << "0.0.0./8";
       ROOTAGGR_AGGRADDR(aggrsim, root, pod, aggr);
 
-      AddRoute (this->rootsw.Get (root), Seconds (0.2), podprefix, aggrsim);
-
-      /* if root index is 0, set default route */
-      if (root = ROOTROOTSW) {
-	str::stringstream prefix, rootsim;
-	prefix << "0.0.0.0/0";
-	ROOTAGGR_ROOTATTR(rootsim, root, pod, aggr);
-	AddRoute (this->aggrsw.Get (aggrn), prefix, rootsim);
-      }
+      AddRoute (this->rootsw.Get (root), Seconds (0.2),
+		podprefix.str().c_str(), aggrsim.str().c_str());
     }
   }
 
@@ -291,15 +300,8 @@ FattreeHelper::InstallRoute ()
 	std::stringstream edgeprefix, edgesim;
 	edgeprefix << pod + 201 << "." << edge + 1 << ".0.0/16";
 	AGGREDGE_EDGEADDR (edgesim, pod, aggr, edge);
-	AddRoute (this->aggrsw.Get (aggrn), edgeprefix, edgesim);
-
-	/* set up default route from edge to aggr */
-	if (aggr == ROOTAGGRSW) {
-	  std::stringstream prefix, aggrsim;
-	  prefix << "0.0.0.0/0";
-	  AGGREDGE_AGGRADDR (aggrsim, pod, aggr, edge);
-	  AddRoute (this->edgesw.Get (edgen), prefix, aggrsim);
-	}
+	AddRoute (this->aggrsw.Get (aggrn), Seconds (0.22),
+		  edgeprefix.str().c_str(), edgesim.str().c_str());
       }
     }
   }
@@ -318,11 +320,179 @@ FattreeHelper::InstallRoute ()
 	std::stringstream prefix, edgesim;
 	prefix << "0.0.0.0/0";
 	EDGENODE_EDGEADDR (edgesim, pod, edge, node);
-	AddRoute (this->nodes.Get (noden), prefix, edgesim);
+	AddRoute (this->nodes.Get (noden), Seconds (0.24),
+		  prefix.str().c_str(), edgesim.str().c_str());
       }
     }
   }
+
+  /* default routes on aggregation and edg switches are isntalled by
+   * InstallRoute() and InstallRouteECMP().
+   */
+
+  return;
 }
+
+void
+FattreeHelper::InstallRoute ()
+{
+  /* Install shortest path through index 0 root, aggregation, edge switch*/
+
+  /* install routes from Root to end node */
+  InstallDownRoute ();
+
+  /* install default routes */
+  for (int pod = 0; pod < PODNUM; pod++) {
+
+    int root = ROOTROOTSW;
+    int aggr = (int)(root / KARY2);
+    int aggrn = AGGRSWINPODNUM * pod + aggr;
+
+    std::stringstream prefix, rootsim;
+    prefix << "0.0.0.0/0";
+    ROOTAGGR_ROOTADDR(rootsim, root, pod, aggr);
+    AddRoute (this->aggrsw.Get (aggrn), Seconds (0.21),
+	      prefix.str().c_str(), rootsim.str().c_str());
+  }
+
+  for (int pod = 0; pod < PODNUM; pod++) {
+    for (int edge = 0; edge < EDGESWINPODNUM; edge++) {
+
+      int aggr = ROOTAGGRSW;
+      int aggrn = AGGRSWINPODNUM * pod + aggr;
+      int edgen = EDGESWINPODNUM * pod + edge;
+
+      /* set up default route from edge to aggr */
+      std::stringstream prefix, aggrsim;
+      prefix << "0.0.0.0/0";
+      AGGREDGE_AGGRADDR (aggrsim, pod, aggr, edge);
+      AddRoute (this->edgesw.Get (edgen), Seconds (0.23),
+		prefix.str().c_str(), aggrsim.str().c_str());
+    }
+  }
+
+  return;
+}
+
+void
+FattreeHelper::InstallRouteECMP ()
+{
+  /* Install ECMP routes through index 0 root, aggregation, edge switch*/
+
+  /* install routes from Root to end node */
+  InstallDownRoute();
+
+  /* set up ECMP routes. ECMPed route is Default route only.
+   * From edge to aggregation, and aggregation to root.
+   */
+
+  /* setup ECMP for default route from aggr to root */
+  for (int aggrn = 0; aggrn < AGGRSWNUM; aggrn++) {
+    int pod = (int)(aggrn / AGGRSWINPODNUM);
+    int aggr = aggrn % AGGRSWINPODNUM;
+
+    std::stringstream route;
+    route << "route add to default";
+
+    for (int root = (KARY2 * aggr);
+	 root < KARY2 * (aggr + 1); root++) {
+      route << " nexthop via "
+	    << root + 1 << "." << pod + 1 << "."
+	    << aggr + 1 << "." << "1 weight 1";
+    }
+    printf ("aggr route %d, %s\n",
+
+	    aggrn, route.str().c_str());
+    RunIp (aggrsw.Get(aggrn), Seconds(0.42), route.str());
+  }
+
+  /* setup ECMP for deafult route from edge to aggr */
+  for (int edgen = 0; edgen < EDGESWNUM; edgen++) {
+    int pod = (int)(edgen / EDGESWINPODNUM);
+    int edge = edgen % EDGESWINPODNUM;
+
+    std::stringstream route;
+    route << "route add to default";
+
+    for (int aggr = 0;
+	 aggr < AGGRSWINPODNUM; aggr++) {
+      route << " nexthop via "
+	    << pod + 101 << "." << aggr + 1 << "."
+	    << edge + 1 << ".1 weight 1" ;
+    }
+    printf ("edge route %d, %s\n",
+	    edgen, route.str().c_str());
+    RunIp (edgesw.Get(edgen), Seconds(0.42), route.str());
+  }
+
+  return;
+}
+
+
+void
+FattreeHelper::SetLinkSpeed (char *speed)
+{
+  strncpy (LINKSPEED, speed, 16);
+
+  return;
+}
+
+void
+FattreeHelper::SetLinkDelay (char *delay)
+{
+  strncpy (LINKDELAY, delay, 16);
+
+  return;
+}
+
+int
+FattreeHelper::GetRootSwitchNum (void)
+{
+  return ROOTSWNUM;
+}
+
+int
+FattreeHelper::GetAggregationSwitchNum (void)
+{
+  return AGGRSWNUM;
+}
+
+int
+FattreeHelper::GetEdgeSwitchNum (void)
+{
+  return EDGESWNUM;
+}
+
+int
+FattreeHelper::GetNodeNum (void)
+{
+  return NODENUM;
+}
+
+Ptr<Node>
+FattreeHelper::GetRootSwitch (int index)
+{
+  return this->rootsw.Get (index);
+}
+
+Ptr<Node>
+FattreeHelper::GetAggregationSwitch (int index)
+{
+  return this->aggrsw.Get (index);
+}
+
+Ptr<Node>
+FattreeHelper::GetEdgeSwitch (int index)
+{
+  return this->edgesw.Get (index);
+}
+
+Ptr<Node>
+FattreeHelper::GetNode (int index)
+{
+  return this->nodes.Get (index);
+}
+
 
 
 } // namespace ns3

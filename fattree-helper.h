@@ -7,6 +7,9 @@
 
 #include "ns3/dce-manager-helper.h"
 #include "ns3/dce-application-helper.h"
+#include "ns3/net-device-container.h"
+#include "ns3/attribute.h"
+#include "ns3/string.h"
 
 namespace ns3 {
 
@@ -49,17 +52,55 @@ public:
    */
   void InstallRouteECMP ();
 
-  NodeContainer nodes GetRootNodes ();
-  Ptr<Node> rootsw GetRootNode(int index);
+  /**
+   * Set link speed.
+   */
+  void SetLinkSpeed (char *speed);
 
-  NodeContainer nodes GetAggrgationNodes ();
-  Ptr<Node> aggrsw GetAggregatationNode(int index);
+  /**
+   * Set link delay.
+   */
+  void SetLinkDelay (char *delay);
 
-  NodeContainer nodes GetEdgeNodes ();
-  Ptr<Node> edgesw GetEdgeNode(int index);
+  /**
+   * Get number of root swich.
+   */
+  int GetRootSwitchNum (void);
 
-  NodeContainer nodes GetEndNodes ();
-  Ptr<Node> edgesw GetEndNode(int index);
+  /**
+   * Get number of aggregation swich.
+   */
+  int GetAggregationSwitchNum (void);
+
+  /**
+   * Get number of edge swich.
+   */
+  int GetEdgeSwitchNum (void);
+
+  /**
+   * Get number of end nodes.
+   */
+  int GetNodeNum (void);
+
+  /**
+   * Get Root switch.
+   */
+  Ptr<Node> GetRootSwitch (int index);
+
+  /**
+   * Get Aggregation switch.
+   */
+  Ptr<Node> GetAggregationSwitch (int index);
+
+  /**
+   * Get Edge switch.
+   */
+  Ptr<Node> GetEdgeSwitch (int index);
+
+  /**
+   * Get end node.
+   */
+  Ptr<Node> GetNode (int index);
 
 
 private:
@@ -69,20 +110,26 @@ private:
   static void AddLoAddress(Ptr<Node> node, Time at, const char *address);
   static void AddRoute(Ptr<Node> node, Time at, 
 		       const char *dst, const char *next);
+  static void LinkUp(NodeContainer nc, NetDeviceContainer ndc, Time at);
 
+  void InstallDownRoute(void);
   
   /**
    * \internal
    */
   int kary;
-  char * rootloprefix;
-  char * aggrloprefix;
+
+  char linkspeed[16];
+  char linkdelay[16];
 
   NodeContainer rootsw;
   NodeContainer aggrsw;
   NodeContainer edgesw;
   NodeContainer nodes;
-}
+
+}; // FattreeHelper
   
 } // namespace ns3
 
+
+#endif /* FATTREE_HELPER_H */
