@@ -75,27 +75,27 @@ main (int argc, char **argv)
   rs << "route show";
 
   for (int root = 0; root < ftree.GetRootSwitchNum (); root++) {
-    RunIp (ftree.GetRootSwitch (root), Seconds (stop - 3), ls.str());
-    RunIp (ftree.GetRootSwitch (root), Seconds (stop - 2), as.str());
-    RunIp (ftree.GetRootSwitch (root), Seconds (stop - 1), rs.str());
+    RunIp (ftree.GetRootSwitch (root), Seconds (stop - 3), ls.str ());
+    RunIp (ftree.GetRootSwitch (root), Seconds (stop - 2), as.str ());
+    RunIp (ftree.GetRootSwitch (root), Seconds (stop - 1), rs.str ());
   }
 
   for (int aggr = 0; aggr < ftree.GetAggregationSwitchNum (); aggr++) {
-    RunIp (ftree.GetAggregationSwitch (aggr), Seconds (stop - 3), ls.str());
-    RunIp (ftree.GetAggregationSwitch (aggr), Seconds (stop - 2), as.str());
-    RunIp (ftree.GetAggregationSwitch (aggr), Seconds (stop - 1), rs.str());
+    RunIp (ftree.GetAggregationSwitch (aggr), Seconds (stop - 3), ls.str ());
+    RunIp (ftree.GetAggregationSwitch (aggr), Seconds (stop - 2), as.str ());
+    RunIp (ftree.GetAggregationSwitch (aggr), Seconds (stop - 1), rs.str ());
   }
 
   for (int edge = 0; edge < ftree.GetEdgeSwitchNum (); edge++) {
-    RunIp (ftree.GetEdgeSwitch (edge), Seconds (stop - 3), ls.str());
-    RunIp (ftree.GetEdgeSwitch (edge), Seconds (stop - 2), as.str());
-    RunIp (ftree.GetEdgeSwitch (edge), Seconds (stop - 1), rs.str());
+    RunIp (ftree.GetEdgeSwitch (edge), Seconds (stop - 3), ls.str ());
+    RunIp (ftree.GetEdgeSwitch (edge), Seconds (stop - 2), as.str ());
+    RunIp (ftree.GetEdgeSwitch (edge), Seconds (stop - 1), rs.str ());
   }
 
   for (int node = 0; node < ftree.GetNodeNum (); node++) {
-    RunIp (ftree.GetNode (node), Seconds (stop - 3), ls.str());
-    RunIp (ftree.GetNode (node), Seconds (stop - 2), as.str());
-    RunIp (ftree.GetNode (node), Seconds (stop - 1), rs.str());
+    RunIp (ftree.GetNode (node), Seconds (stop - 3), ls.str ());
+    RunIp (ftree.GetNode (node), Seconds (stop - 2), as.str ());
+    RunIp (ftree.GetNode (node), Seconds (stop - 1), rs.str ());
   }
 
 

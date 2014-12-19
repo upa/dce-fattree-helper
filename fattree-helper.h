@@ -43,82 +43,107 @@ public:
   void Create ();
 
   /**
-   * Install shortest path tree static routes.
+   * Install routing table on all switches and nodes. The route follows
+   * shortest path tree.
    */
   void InstallRoute ();
 
   /**
-   * Install shortest path tree route with ECMP.
+   * Install routing table on all switches and nodes. All multipath links
+   * are used as Equal Cost Multi path.
    */
   void InstallRouteECMP ();
 
   /**
-   * Set link speed.
+   * Set link speed of all links. SetLinkSpeed must be called beofre Create ().
+   *
+   * \param speed Link speed attirubte of ns-3.
    */
   void SetLinkSpeed (char *speed);
 
   /**
-   * Set link delay.
+   * Set link delay of all links. SetLinkDelay must be called before Create ().
+   *
+   * \param delay Link delay attribute of ns-3.
    */
   void SetLinkDelay (char *delay);
 
   /**
    * Get number of root swich.
+   *
+   * \returns The number of root switches.
    */
   int GetRootSwitchNum (void);
 
   /**
    * Get number of aggregation swich.
+   *
+   * \returns The number of aggregation switches.
    */
   int GetAggregationSwitchNum (void);
 
   /**
    * Get number of edge swich.
+   *
+   * \returns The number of edge swithces.
    */
   int GetEdgeSwitchNum (void);
 
   /**
    * Get number of end nodes.
+   *
+   * \returns The number of end nodes.
    */
   int GetNodeNum (void);
 
   /**
    * Get Root switch.
+   *
+   * \param index The index of root switch.
+   * \returns A pointer of the root switch node.
    */
   Ptr<Node> GetRootSwitch (int index);
 
   /**
    * Get Aggregation switch.
+   *
+   * \param index The index of aggregation switch.
+   * \returns A pointer of the aggregation switch node.
    */
   Ptr<Node> GetAggregationSwitch (int index);
 
   /**
    * Get Edge switch.
+   *
+   * \param index The index of edge switch.
+   * \returns A pointer of the edge switch node.
    */
   Ptr<Node> GetEdgeSwitch (int index);
 
   /**
    * Get end node.
+   *
+   * \param index The index of end node.
+   * \returns A pointer of the end node.
    */
   Ptr<Node> GetNode (int index);
 
 
 private:
-  static void RunIp(Ptr<Node> node, Time at, std::string str);
-  static void AddAddress(Ptr<Node> node, Time at, int ifindex,
-			 const char *address);
-  static void AddLoAddress(Ptr<Node> node, Time at, const char *address);
-  static void AddRoute(Ptr<Node> node, Time at, 
-		       const char *dst, const char *next);
-  static void LinkUp(NodeContainer nc, NetDeviceContainer ndc, Time at);
-
-  void InstallDownRoute(void);
-  
   /**
    * \internal
    */
-  int kary;
 
+  static void RunIp (Ptr<Node> node, Time at, std::string str);
+  static void AddAddress (Ptr<Node> node, Time at, int ifindex,
+			  const char *address);
+  static void AddRoute (Ptr<Node> node, Time at,
+			const char *dst, const char *next);
+  static void LinkUp (NodeContainer nc, NetDeviceContainer ndc, Time at);
+  void InstallDownRoute (void);
+
+
+  int kary;
   char linkspeed[16];
   char linkdelay[16];
 
