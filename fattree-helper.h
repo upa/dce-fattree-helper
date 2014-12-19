@@ -110,8 +110,7 @@ private:
   static void AddLoAddress(Ptr<Node> node, Time at, const char *address);
   static void AddRoute(Ptr<Node> node, Time at, 
 		       const char *dst, const char *next);
-  static void LinkUp(Ptr<Node> n1, Ptr<Node> n2,
-		     NetDeviceContainer ndc, Time at);
+  static void LinkUp(NodeContainer nc, NetDeviceContainer ndc, Time at);
 
   void InstallDownRoute(void);
   
