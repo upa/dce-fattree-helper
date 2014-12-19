@@ -10,7 +10,7 @@
 NS_LOG_COMPONENT_DEFINE ("FattreeHelper");
 
 #define FATTREE_DEFAULT_ARYSIZE		4
-#define FATTREE_DEFAULT_LINKSPEED	"10mbps"
+#define FATTREE_DEFAULT_LINKSPEED	"8Mbps"
 #define FATTREE_DEFAULT_LINKDELAY	"1ms"
 
 #define LINKSPEED	(this->linkspeed)
@@ -39,23 +39,25 @@ NS_LOG_COMPONENT_DEFINE ("FattreeHelper");
 
 /* Address Resolution Macros */
 
+#define prefixlen "/24"
+
 /* Link between root and aggrgation. root+1.pod+1.aggr+1.(1|2) */
-#define ROOTAGGR_ROOTADDR(addr, root, pod, aggr) \
-  addr << root + 1 << "." << pod + 1 << "." << aggr + 1 << "." << "1/24"
-#define ROOTAGGR_AGGRADDR(addr, root, pod, aggr) \
-  addr << root + 1 << "." << pod + 1 << "." << aggr + 1 << "." << "2/24"
+#define ROOTAGGR_ROOTADDR(addr, root, pod, aggr, suffix)		\
+  addr << root + 1 << "." << pod + 1 << "." << aggr + 1 << ".1" << suffix
+#define ROOTAGGR_AGGRADDR(addr, root, pod, aggr, suffix)		\
+  addr << root + 1 << "." << pod + 1 << "." << aggr + 1 << ".2" << suffix
 
 /* Link between aggrgation and edge. pod+1+100.aggr+1.edge+1.(1|2) */
-#define AGGREDGE_AGGRADDR(addr, pod, aggr, edge) \
-  addr << pod + 101 << "." << aggr + 1 << "." << edge + 1 << "1/24"
-#define AGGREDGE_EDGEADDR(addr, pod, aggr, edge) \
-  addr << pod + 101 << "." << aggr + 1 << "." << edge + 1 << "2/24"
+#define AGGREDGE_AGGRADDR(addr, pod, aggr, edge, suffix)		\
+  addr << pod + 101 << "." << aggr + 1 << "." << edge + 1 << ".1" << suffix
+#define AGGREDGE_EDGEADDR(addr, pod, aggr, edge, suffix)		\
+  addr << pod + 101 << "." << aggr + 1 << "." << edge + 1 << ".2" << suffix
 
 /* Link between edge and end node. pod+1+200.edge+1.node+1.(1|2) */
-#define EDGENODE_EDGEADDR(addr, pod, edge, node) \
-  addr << pod + 201 << "." << edge + 1 << "." << node + 1 << "1/24"
-#define EDGENODE_NODEADDR(addr, pod, edge, node) \
-  addr << pod + 201 << "." << edge + 1 << "." << node + 1 << "2/24"
+#define EDGENODE_EDGEADDR(addr, pod, edge, node, suffix)		\
+  addr << pod + 201 << "." << edge + 1 << "." << node + 1 << ".1" << suffix
+#define EDGENODE_NODEADDR(addr, pod, edge, node, suffix)		\
+  addr << pod + 201 << "." << edge + 1 << "." << node + 1 << ".2" << suffix
 
 
 
@@ -104,14 +106,18 @@ FattreeHelper::AddRoute(Ptr<Node> node, Time at,
 }
   
 void
-FattreeHelper::LinkUp(NodeContainer nc, NetDeviceContainer ndc, Time at)
+FattreeHelper::LinkUp(Ptr<Node> n1, Ptr<Node> n2,
+		      NetDeviceContainer ndc, Time at)
 {
   std::stringstream simup1, simup2;
   simup1 << "link set sim" << ndc.Get(0)->GetIfIndex() << " up";
   simup2 << "link set sim" << ndc.Get(1)->GetIfIndex() << " up";
 
-  RunIp (nc.Get (0), Seconds (at), simup1.str());
-  RunIp (nc.Get (1), Seconds (at), simup2.str());
+  printf ("simup1 : %s\n", simup1.str().c_str());
+  printf ("simup2 : %s\n", simup2.str().c_str());
+
+  RunIp (n1, Seconds (at), simup1.str());
+  RunIp (n2, Seconds (at), simup2.str());
   return;
 }
 
@@ -170,7 +176,6 @@ FattreeHelper::Create ()
   for (int pod = 0; pod < PODNUM; pod++) {
     for (int root = 0; root < ROOTSWNUM; root++) {
 
-      int linkn = PODNUM * pod + root;	/* link number */
       int aggr = (int)(root / KARY2);
       int aggrn = AGGRSWINPODNUM * pod + aggr;
       
@@ -186,14 +191,14 @@ FattreeHelper::Create ()
 
       /* setup IP addresses */
       std::stringstream roota, aggra;
-      ROOTAGGR_ROOTADDR (roota, root, pod, aggr);
-      ROOTAGGR_AGGRADDR (aggra, root, pod, aggr);
+      ROOTAGGR_ROOTADDR (roota, root, pod, aggr, prefixlen);
+      ROOTAGGR_AGGRADDR (aggra, root, pod, aggr, prefixlen);
       AddAddress (nc.Get(0), Seconds(0.1),
 		  ndc.Get(0)->GetIfIndex(), roota.str().c_str());
-      AddAddress (nc.Get(0), Seconds(0.1), ndc.Get(1)->GetIfIndex(),
+      AddAddress (nc.Get(1), Seconds(0.1), ndc.Get(1)->GetIfIndex(),
 		  aggra.str().c_str());
 
-      LinkUp (nc, ndc, Seconds (0.11));
+      LinkUp (nc.Get(0), nc.Get(1), ndc, Seconds (0.11));
     }
   }
   
@@ -217,14 +222,14 @@ FattreeHelper::Create ()
 
 	/* setup IP addresses */
 	std::stringstream aggra, edgea;
-	AGGREDGE_AGGRADDR (aggra, pod, aggr, edge);
-	AGGREDGE_EDGEADDR (edgea, pod, aggr, edge);
+	AGGREDGE_AGGRADDR (aggra, pod, aggr, edge, prefixlen);
+	AGGREDGE_EDGEADDR (edgea, pod, aggr, edge, prefixlen);
 	AddAddress (nc.Get(0), Seconds(0.11),
 		    ndc.Get(0)->GetIfIndex(), aggra.str().c_str());
-	AddAddress (nc.Get(0), Seconds(0.11),
+	AddAddress (nc.Get(1), Seconds(0.11),
 		    ndc.Get(1)->GetIfIndex(), edgea.str().c_str());
 
-	LinkUp (nc, ndc, Seconds (0.12));
+	LinkUp (nc.Get(0), nc.Get(1), ndc, Seconds (0.12));
       }
     }
   }
@@ -249,14 +254,14 @@ FattreeHelper::Create ()
 
 	/* setup IP addresses */
 	std::stringstream edgea, nodea;
-	EDGENODE_EDGEADDR (edgea, pod, edge, node);
-	EDGENODE_NODEADDR (nodea, pod, edge, node);
+	EDGENODE_EDGEADDR (edgea, pod, edge, node, prefixlen);
+	EDGENODE_NODEADDR (nodea, pod, edge, node, prefixlen);
 	AddAddress (nc.Get(0), Seconds(0.12),
 		    ndc.Get(0)->GetIfIndex(), edgea.str().c_str());
-	AddAddress (nc.Get(0), Seconds(0.12),
+	AddAddress (nc.Get(1), Seconds(0.12),
 		    ndc.Get(1)->GetIfIndex(), nodea.str().c_str());
 
-	LinkUp (nc, ndc, Seconds (0.13));
+	LinkUp (nc.Get(0), nc.Get(1), ndc, Seconds (0.13));
       }
     }
   }
@@ -278,8 +283,8 @@ FattreeHelper::InstallDownRoute(void)
       int aggrn = AGGRSWINPODNUM * pod + aggr;
 
       std::stringstream podprefix, aggrsim;
-      podprefix << pod + 201 << "0.0.0./8";
-      ROOTAGGR_AGGRADDR(aggrsim, root, pod, aggr);
+      podprefix << pod + 201 << ".0.0.0/8";
+      ROOTAGGR_AGGRADDR(aggrsim, root, pod, aggr, "");
 
       AddRoute (this->rootsw.Get (root), Seconds (0.2),
 		podprefix.str().c_str(), aggrsim.str().c_str());
@@ -299,8 +304,8 @@ FattreeHelper::InstallDownRoute(void)
 	 */
 	std::stringstream edgeprefix, edgesim;
 	edgeprefix << pod + 201 << "." << edge + 1 << ".0.0/16";
-	AGGREDGE_EDGEADDR (edgesim, pod, aggr, edge);
-	AddRoute (this->aggrsw.Get (aggrn), Seconds (0.22),
+	AGGREDGE_EDGEADDR (edgesim, pod, aggr, edge, "");
+	AddRoute (this->aggrsw.Get (aggrn), Seconds (0.21),
 		  edgeprefix.str().c_str(), edgesim.str().c_str());
       }
     }
@@ -319,8 +324,8 @@ FattreeHelper::InstallDownRoute(void)
 	 */
 	std::stringstream prefix, edgesim;
 	prefix << "0.0.0.0/0";
-	EDGENODE_EDGEADDR (edgesim, pod, edge, node);
-	AddRoute (this->nodes.Get (noden), Seconds (0.24),
+	EDGENODE_EDGEADDR (edgesim, pod, edge, node, "");
+	AddRoute (this->nodes.Get (noden), Seconds (0.22),
 		  prefix.str().c_str(), edgesim.str().c_str());
       }
     }
@@ -350,8 +355,8 @@ FattreeHelper::InstallRoute ()
 
     std::stringstream prefix, rootsim;
     prefix << "0.0.0.0/0";
-    ROOTAGGR_ROOTADDR(rootsim, root, pod, aggr);
-    AddRoute (this->aggrsw.Get (aggrn), Seconds (0.21),
+    ROOTAGGR_ROOTADDR(rootsim, root, pod, aggr, "");
+    AddRoute (this->aggrsw.Get (aggrn), Seconds (0.3),
 	      prefix.str().c_str(), rootsim.str().c_str());
   }
 
@@ -365,8 +370,8 @@ FattreeHelper::InstallRoute ()
       /* set up default route from edge to aggr */
       std::stringstream prefix, aggrsim;
       prefix << "0.0.0.0/0";
-      AGGREDGE_AGGRADDR (aggrsim, pod, aggr, edge);
-      AddRoute (this->edgesw.Get (edgen), Seconds (0.23),
+      AGGREDGE_AGGRADDR (aggrsim, pod, aggr, edge, "");
+      AddRoute (this->edgesw.Get (edgen), Seconds (0.31),
 		prefix.str().c_str(), aggrsim.str().c_str());
     }
   }
@@ -401,9 +406,8 @@ FattreeHelper::InstallRouteECMP ()
 	    << aggr + 1 << "." << "1 weight 1";
     }
     printf ("aggr route %d, %s\n",
-
 	    aggrn, route.str().c_str());
-    RunIp (aggrsw.Get(aggrn), Seconds(0.42), route.str());
+    RunIp (aggrsw.Get(aggrn), Seconds(0.41), route.str());
   }
 
   /* setup ECMP for deafult route from edge to aggr */
@@ -422,7 +426,7 @@ FattreeHelper::InstallRouteECMP ()
     }
     printf ("edge route %d, %s\n",
 	    edgen, route.str().c_str());
-    RunIp (edgesw.Get(edgen), Seconds(0.42), route.str());
+    RunIp (edgesw.Get(edgen), Seconds(0.41), route.str());
   }
 
   return;
