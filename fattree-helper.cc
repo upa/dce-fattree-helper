@@ -135,15 +135,6 @@ void
 FattreeHelper::Create ()
 {
 
-  NodeContainer nc_root2aggr[ROOT2AGGRLINKS];
-  NodeContainer nc_aggr2edge[AGGR2EDGELINKS];
-  NodeContainer nc_edge2node[EDGE2NODELINKS];
-
-  NetDeviceContainer ndc_root2aggr[ROOT2AGGRLINKS];
-  NetDeviceContainer ndc_aggr2edge[AGGR2EDGELINKS];
-  NetDeviceContainer ndc_edge2node[EDGE2NODELINKS];
-
-
   /* create instances of all switch nodes */
   this->rootsw.Create (ROOTSWNUM);
   this->aggrsw.Create (AGGRSWNUM);
@@ -173,23 +164,23 @@ FattreeHelper::Create ()
       int aggrn = AGGRSWINPODNUM * pod + aggr;
       
       /* install link */
+      NodeContainer nc;
+      NetDeviceContainer ndc;
       PointToPointHelper p2p;
+
       p2p.SetDeviceAttribute("DataRate", StringValue (LINKSPEED));
       p2p.SetChannelAttribute("Delay", StringValue (LINKDELAY));
 
-      nc_root2aggr[linkn] = NodeContainer (this->rootsw.Get(root),
-					   this->aggrsw.Get(aggrn));
-      ndc_root2aggr[linkn] = p2p.Install (nc_root2aggr[linkn]);
+      nc = NodeContainer (this->rootsw.Get(root), this->aggrsw.Get(aggrn));
+      ndc = p2p.Install (nc);
 
       /* setup IP addresses */
       std::stringstream roota, aggra;
       roota << ROOTAGGR_ROOTADDR (root, pod, aggr) << "/24";
       aggra << ROOTAGGR_AGGRADDR (root, pod, aggr) << "/24";
-      AddAddress (nc_root2aggr[linkn].Get(0), Seconds(0.1),
-		  ndc_root2aggr[linkn].Get(0)->GetIfIndex(),
+      AddAddress (nc.Get(0), Seconds(0.1), ndc.Get(0)->GetIfIndex(),
 		  roota.str().c_str());
-      AddAddress (nc_root2aggr[linkn].Get(1), Seconds(0.1),
-		  ndc_root2aggr[linkn].Get(1)->GetIfIndex(),
+      AddAddress (nc.Get(1), Seconds(0.1), ndc.Get(1)->GetIfIndex(),
 		  aggra.str().c_str());
     }
   }
@@ -205,25 +196,23 @@ FattreeHelper::Create ()
 	int edgen = EDGESWINPODNUM * pod + edge;
 	
 	/* install link */
+	NodeContainer nc;
+	NetDeviceContainer ndc;
 	PointToPointHelper p2p;
+
 	p2p.SetDeviceAttribute("DataRate", StringValue (LINKSPEED));
 	p2p.SetChannelAttribute("Delay", StringValue (LINKDELAY));
 
-	NodeContainer nc;
-	NetDeviceContainer ndc;
-	nc_aggr2edge[linkn] = NodeContainer (this->aggrsw.Get(aggrn),
-					     this->edgesw.Get(edgen));
-	ndc_aggr2edge[linkn] = p2p.Install (nc_aggr2edge[linkn]);
+	nc = NodeContainer (this->aggrsw.Get(aggrn), this->edgesw.Get(edgen));
+	ndc = p2p.Install (nc);
 
 	/* setup IP addresses */
 	std::stringstream aggra, edgea;
 	aggra << AGGREDGE_AGGRADDR (pod, aggr, edge) << "/24";
 	edgea << AGGREDGE_EDGEADDR (pod, aggr, edge) << "/24";
-	AddAddress (nc_aggr2edge[linkn].Get(0), Seconds(0.11),
-		    ndc_aggr2edge[linkn].Get(0)->GetIfIndex(),
+	AddAddress (nc.Get(0), Seconds(0.11), ndc.Get(0)->GetIfIndex(),
 		    aggra.str().c_str());
-	AddAddress (nc_aggr2edge[linkn].Get(1), Seconds(0.11),
-		    ndc_aggr2edge[linkn].Get(1)->GetIfIndex(),
+	AddAddress (nc.Get(1), Seconds(0.11), ndc.Get(1)->GetIfIndex(),
 		    edgea.str().c_str());
       }
     }
@@ -239,25 +228,22 @@ FattreeHelper::Create ()
 	int noden = NODEINPODNUM * pod + NODEINEDGENUM * edge + node;
 
 	/* install link */
+	NodeContainer nc;
+	NetDeviceContainer ndc;
 	PointToPointHelper p2p;
 	p2p.SetDeviceAttribute("DataRate", StringValue (LINKSPEED));
 	p2p.SetChannelAttribute("Delay", StringValue (LINKDELAY));
 
-	NodeContainer nc;
-	NetDeviceContainer ndc;
-	nc_edge2node[linkn] = NodeContainer (this->edgesw.Get(edgen),
-				      this->nodes.Get(noden));
-	ndc_edge2node[linkn] = p2p.Install (nc_edge2node[linkn]);
+	nc = NodeContainer (this->edgesw.Get(edgen), this->nodes.Get(noden));
+	ndc = p2p.Install (nc);
 
 	/* setup IP addresses */
 	std::stringstream edgea, nodea;
 	edgea << EDGENODE_EDGEADDR (pod, edge, node) << "/24";
 	nodea << EDGENODE_NODEADDR (pod, edge, node) << "/24";
-	AddAddress (nc_edge2node[linkn].Get(0), Seconds(0.12),
-		    ndc_edge2node[linkn].Get(0)->GetIfIndex(),
+	AddAddress (nc.Get(0), Seconds(0.12), ndc.Get(0)->GetIfIndex(),
 		    edgea.str().c_str());
-	AddAddress (nc_edge2node[linkn].Get(1), Seconds(0.12),
-		    ndc_edge2node[linkn].Get(1)->GetIfIndex(),
+	AddAddress (nc.Get(1), Seconds(0.12), ndc.Get(1)->GetIfIndex(),
 		    nodea.str().c_str());
       }
     }
@@ -428,8 +414,7 @@ FattreeHelper::InstallRouteECMP ()
       route << " nexthop via " << ROOTAGGR_ROOTADDR (root, pod, aggr)
 	    << " weight 1";
     }
-    printf ("aggr route %d, %s\n",
-	    aggrn, route.str().c_str());
+
     RunIp (aggrsw.Get(aggrn), Seconds(0.41), route.str());
   }
 
@@ -446,8 +431,7 @@ FattreeHelper::InstallRouteECMP ()
       route << " nexthop via " << AGGREDGE_AGGRADDR (pod, aggr, edge)
 	    << " weight 1" ;
     }
-    printf ("edge route %d, %s\n",
-	    edgen, route.str().c_str());
+
     RunIp (edgesw.Get(edgen), Seconds(0.41), route.str());
   }
 
