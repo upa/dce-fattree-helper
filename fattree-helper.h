@@ -137,6 +137,7 @@ private:
   static void RunIp (Ptr<Node> node, Time at, std::string str);
   static void AddAddress (Ptr<Node> node, Time at, int ifindex,
 			  const char *address);
+  static void AddLoAddress (Ptr<Node> node, Time at, const char *address);
   static void AddRoute (Ptr<Node> node, Time at,
 			const char *dst, const char *next);
   static void LinkUp (NodeContainer nc, NetDeviceContainer ndc, Time at);
