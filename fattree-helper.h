@@ -73,28 +73,28 @@ public:
    *
    * \returns The number of root switches.
    */
-  int GetRootSwitchNum (void);
+  int GetRootN (void);
 
   /**
    * Get number of aggregation swich.
    *
    * \returns The number of aggregation switches.
    */
-  int GetAggregationSwitchNum (void);
+  int GetAggrN (void);
 
   /**
    * Get number of edge swich.
    *
    * \returns The number of edge swithces.
    */
-  int GetEdgeSwitchNum (void);
+  int GetEdgeN (void);
 
   /**
    * Get number of end nodes.
    *
    * \returns The number of end nodes.
    */
-  int GetNodeNum (void);
+  int GetNodeN (void);
 
   /**
    * Get Root switch.
@@ -102,7 +102,7 @@ public:
    * \param index The index of root switch.
    * \returns A pointer of the root switch node.
    */
-  Ptr<Node> GetRootSwitch (int index);
+  Ptr<Node> GetRoot (int index);
 
   /**
    * Get Aggregation switch.
@@ -110,7 +110,7 @@ public:
    * \param index The index of aggregation switch.
    * \returns A pointer of the aggregation switch node.
    */
-  Ptr<Node> GetAggregationSwitch (int index);
+  Ptr<Node> GetAggr (int index);
 
   /**
    * Get Edge switch.
@@ -118,7 +118,7 @@ public:
    * \param index The index of edge switch.
    * \returns A pointer of the edge switch node.
    */
-  Ptr<Node> GetEdgeSwitch (int index);
+  Ptr<Node> GetEdge (int index);
 
   /**
    * Get end node.

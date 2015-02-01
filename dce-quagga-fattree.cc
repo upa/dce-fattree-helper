@@ -51,19 +51,19 @@ main (int argc, char **argv)
   if (enable_quagga) {
     QuaggaHelper quagga;
 
-    for (int n = 0; n < ftree.GetRootSwitchNum (); n++) {
-      quagga.EnableOspf (ftree.GetRootSwitch (n), "0.0.0.0/0");
-      quagga.Install (ftree.GetRootSwitch (n));
+    for (int n = 0; n < ftree.GetRootN (); n++) {
+      quagga.EnableOspf (ftree.GetRoot (n), "0.0.0.0/0");
+      quagga.Install (ftree.GetRoot (n));
     }
 
-    for (int n = 0; n < ftree.GetAggregationSwitchNum (); n++) {
-      quagga.EnableOspf (ftree.GetAggregationSwitch (n), "0.0.0.0/0");
-      quagga.Install (ftree.GetAggregationSwitch (n));
+    for (int n = 0; n < ftree.GetAggrN (); n++) {
+      quagga.EnableOspf (ftree.GetAggr (n), "0.0.0.0/0");
+      quagga.Install (ftree.GetAggr (n));
     }
 
-    for (int n = 0; n < ftree.GetEdgeSwitchNum (); n++) {
-      quagga.EnableOspf (ftree.GetEdgeSwitch (n), "0.0.0.0/0");
-      quagga.Install (ftree.GetEdgeSwitch (n));
+    for (int n = 0; n < ftree.GetEdgeN (); n++) {
+      quagga.EnableOspf (ftree.GetEdge (n), "0.0.0.0/0");
+      quagga.Install (ftree.GetEdge (n));
     }
   }
 
@@ -74,25 +74,25 @@ main (int argc, char **argv)
   as << "addr show";
   rs << "route show";
 
-  for (int root = 0; root < ftree.GetRootSwitchNum (); root++) {
-    RunIp (ftree.GetRootSwitch (root), Seconds (stop - 3), ls.str ());
-    RunIp (ftree.GetRootSwitch (root), Seconds (stop - 2), as.str ());
-    RunIp (ftree.GetRootSwitch (root), Seconds (stop - 1), rs.str ());
+  for (int root = 0; root < ftree.GetRootN (); root++) {
+    RunIp (ftree.GetRoot (root), Seconds (stop - 3), ls.str ());
+    RunIp (ftree.GetRoot (root), Seconds (stop - 2), as.str ());
+    RunIp (ftree.GetRoot (root), Seconds (stop - 1), rs.str ());
   }
 
-  for (int aggr = 0; aggr < ftree.GetAggregationSwitchNum (); aggr++) {
-    RunIp (ftree.GetAggregationSwitch (aggr), Seconds (stop - 3), ls.str ());
-    RunIp (ftree.GetAggregationSwitch (aggr), Seconds (stop - 2), as.str ());
-    RunIp (ftree.GetAggregationSwitch (aggr), Seconds (stop - 1), rs.str ());
+  for (int aggr = 0; aggr < ftree.GetAggrN (); aggr++) {
+    RunIp (ftree.GetAggr (aggr), Seconds (stop - 3), ls.str ());
+    RunIp (ftree.GetAggr (aggr), Seconds (stop - 2), as.str ());
+    RunIp (ftree.GetAggr (aggr), Seconds (stop - 1), rs.str ());
   }
 
-  for (int edge = 0; edge < ftree.GetEdgeSwitchNum (); edge++) {
-    RunIp (ftree.GetEdgeSwitch (edge), Seconds (stop - 3), ls.str ());
-    RunIp (ftree.GetEdgeSwitch (edge), Seconds (stop - 2), as.str ());
-    RunIp (ftree.GetEdgeSwitch (edge), Seconds (stop - 1), rs.str ());
+  for (int edge = 0; edge < ftree.GetEdgeN (); edge++) {
+    RunIp (ftree.GetEdge (edge), Seconds (stop - 3), ls.str ());
+    RunIp (ftree.GetEdge (edge), Seconds (stop - 2), as.str ());
+    RunIp (ftree.GetEdge (edge), Seconds (stop - 1), rs.str ());
   }
 
-  for (int node = 0; node < ftree.GetNodeNum (); node++) {
+  for (int node = 0; node < ftree.GetNodeN (); node++) {
     RunIp (ftree.GetNode (node), Seconds (stop - 3), ls.str ());
     RunIp (ftree.GetNode (node), Seconds (stop - 2), as.str ());
     RunIp (ftree.GetNode (node), Seconds (stop - 1), rs.str ());

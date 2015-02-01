@@ -449,43 +449,43 @@ FattreeHelper::SetLinkDelay (char *delay)
 }
 
 int
-FattreeHelper::GetRootSwitchNum (void)
+FattreeHelper::GetRootN (void)
 {
   return ROOTSWNUM;
 }
 
 int
-FattreeHelper::GetAggregationSwitchNum (void)
+FattreeHelper::GetAggrN (void)
 {
   return AGGRSWNUM;
 }
 
 int
-FattreeHelper::GetEdgeSwitchNum (void)
+FattreeHelper::GetEdgeN (void)
 {
   return EDGESWNUM;
 }
 
 int
-FattreeHelper::GetNodeNum (void)
+FattreeHelper::GetNodeN (void)
 {
   return NODENUM;
 }
 
 Ptr<Node>
-FattreeHelper::GetRootSwitch (int index)
+FattreeHelper::GetRoot (int index)
 {
   return this->rootsw.Get (index);
 }
 
 Ptr<Node>
-FattreeHelper::GetAggregationSwitch (int index)
+FattreeHelper::GetAggr (int index)
 {
   return this->aggrsw.Get (index);
 }
 
 Ptr<Node>
-FattreeHelper::GetEdgeSwitch (int index)
+FattreeHelper::GetEdge (int index)
 {
   return this->edgesw.Get (index);
 }
